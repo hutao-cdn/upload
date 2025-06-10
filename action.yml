@@ -11,8 +11,8 @@ inputs:
     required: true
     default: ''
   key:
-    description: 'Storage key for the file.'
-    required: true
+    description: 'Storage key for the file. Ignored if provided file path is a directory. Defaults to the file name if not provided.'
+    required: false
     default: ''
   post_action:
     description: 'The post action to perform after uploading the file. Options are "none", "refresh", or "preheat". Defaults to "none".'

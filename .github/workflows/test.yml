@@ -6,13 +6,9 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          sudo apt-get update
-          sudo apt-get install -y curl
-          curl -o 50mb.test https://cachefly.cachefly.net/50mb.test
       - uses: hutao-cdn/upload@main
         with:
-          file_path: 50mb.test
-          key: 50mb.test
+          file_path: .github
+          key: test
         env:
           SNAP_HUTAO_CDN_TOKEN: ${{ secrets.SNAP_HUTAO_CDN_TOKEN }}

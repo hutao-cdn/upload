@@ -1,5 +1,6 @@
 import * as core from '@actions/core';
 import {CdnClient} from './CdnClient';
+import * as fs from 'fs-extra';
 
 async function run() {
     try {
@@ -9,8 +10,8 @@ async function run() {
             return;
         }
 
-        let file_path = core.getInput("file_path", {required: true});
-        let key = core.getInput("key", {required: true});
+        let file_path = core.getInput("file_path", {required: true}).replace(/\/$/, '');
+        let key = core.getInput("key") || file_path.split('/').pop() || '';
         let post_action = core.getInput("post_action") || 'none';
 
         core.info("Starting Snap Hutao CDN upload with the following parameters:");
@@ -20,21 +21,19 @@ async function run() {
 
         const cdnClient = new CdnClient(token);
 
-        const uploadUrls = await cdnClient.getUploadUrls(key);
-        if (uploadUrls.length === 0) {
-            core.setFailed('No upload URLs received from Snap Hutao CDN.');
+        const stats = await fs.stat(file_path);
+        if (stats.isDirectory()) {
+            core.info(`The provided file path is a directory: ${file_path}`);
+            key = file_path.split('/').pop() || '';
+            core.warning(`Custom key is ignored, current key is set to the last part of the directory path: ${key}`);
+            await cdnClient.uploadDir(file_path, key);
+        } else if (stats.isFile()) {
+            core.info(`The provided file path is a file: ${file_path}`);
+            await cdnClient.uploadFile(file_path, key);
+        } else {
+            core.setFailed(`The provided file path is neither a file nor a directory: ${file_path}`);
             return;
         }
-
-        core.info(`Received ${uploadUrls.length} upload URLs from Snap Hutao CDN.`);
-        for (let i = 0; i < uploadUrls.length; i++) {
-            const url = uploadUrls[i];
-            core.info(`Uploading file to URL ${i + 1}/${uploadUrls.length}`);
-            await cdnClient.uploadFile(url, file_path);
-            core.info(`Uploaded file to URL ${i + 1}/${uploadUrls.length}`);
-        }
-
-        core.info(`File ${file_path} uploaded successfully to Snap Hutao CDN with key ${key}.`);
 
         if (post_action === 'preheat') {
             core.info(`Preheating CDN for key ${key}...`);

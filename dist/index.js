@@ -60,51 +60,40 @@ class CdnClient {
             socketTimeout: 120 * 1000
         });
     }
-    getUploadUrls(key) {
+    uploadFile(filePath, key) {
         return __awaiter(this, void 0, void 0, function* () {
-            core.info("Fetching upload URLs from Snap Hutao CDN...");
-            const header = {
-                'Content-Type': 'application/json'
-            };
-            const body = {
-                token: this.token,
-                key: key,
-            };
-            const res = yield this.client.post(this.getUrl("/v2/getUploadUrls"), JSON.stringify(body), header)
-                .then(res => res.readBody())
-                .then(res => JSON.parse(res));
-            if (res.retcode !== 0) {
-                throw new Error(`Failed to get upload URLs: ${res.message}`);
+            const uploadUrls = yield this.getUploadUrls(key);
+            if (uploadUrls.length === 0) {
+                core.setFailed('No upload URLs received from Snap Hutao CDN.');
+                return;
             }
-            return res.data;
+            core.info(`Received ${uploadUrls.length} upload URLs from Snap Hutao CDN.`);
+            for (let i = 0; i < uploadUrls.length; i++) {
+                const url = uploadUrls[i];
+                core.info(`Uploading file to URL ${i + 1}/${uploadUrls.length}`);
+                yield this.uploadFileCore(url, filePath);
+                core.info(`Uploaded file to URL ${i + 1}/${uploadUrls.length}`);
+            }
+            core.info(`File ${filePath} uploaded successfully to Snap Hutao CDN with key ${key}.`);
         });
     }
-    uploadFile(url, filePath) {
+    uploadDir(dirPath, baseKey) {
         return __awaiter(this, void 0, void 0, function* () {
-            const fileSize = yield fs.stat(filePath).then(stat => stat.size);
-            const stream = fs.createReadStream(filePath);
-            let uploadedBytes = 0;
-            let lastReportedProgress = 0;
-            const progressInterval = 10;
-            stream.on('data', (chunk) => {
-                uploadedBytes += chunk.length;
-                const progress = Math.floor((uploadedBytes / fileSize) * 100);
-                if (progress - lastReportedProgress >= progressInterval || progress === 100) {
-                    core.info(`Upload progress: ${progress}% (${uploadedBytes}/${fileSize} bytes)`);
-                    lastReportedProgress = progress;
+            core.info(`Uploading directory ${dirPath} to Snap Hutao CDN with base key ${baseKey}`);
+            const files = yield fs.readdir(dirPath);
+            for (const file of files) {
+                const filePath = `${dirPath}/${file}`;
+                const stats = yield fs.stat(filePath);
+                if (stats.isFile()) {
+                    const key = `${baseKey}/${file}`;
+                    yield this.uploadFile(filePath, key);
                 }
-            });
-            const header = {
-                'Content-Type': 'application/octet-stream',
-                'Content-Length': fileSize.toString(),
-            };
-            // @ts-ignore
-            const res = yield this.client.put(url, stream, header);
-            if (res.message.statusCode !== 200) {
-                const error = yield res.readBody();
-                core.error(`Failed to upload file: ${error}`);
-                throw new Error(`Upload failed with status code ${res.message.statusCode}: ${error}`);
+                else if (stats.isDirectory()) {
+                    const subDirKey = `${baseKey}/${file}`;
+                    yield this.uploadDir(filePath, subDirKey);
+                }
             }
+            core.info(`Directory ${dirPath} uploaded successfully to Snap Hutao CDN.`);
         });
     }
     preheat(key) {
@@ -141,6 +130,53 @@ class CdnClient {
     }
     getUrl(path) {
         return `https://api.qhy04.com/hutaocdn${path}`;
+    }
+    getUploadUrls(key) {
+        return __awaiter(this, void 0, void 0, function* () {
+            core.info("Fetching upload URLs from Snap Hutao CDN...");
+            const header = {
+                'Content-Type': 'application/json'
+            };
+            const body = {
+                token: this.token,
+                key: key,
+            };
+            const res = yield this.client.post(this.getUrl("/v2/getUploadUrls"), JSON.stringify(body), header)
+                .then(res => res.readBody())
+                .then(res => JSON.parse(res));
+            if (res.retcode !== 0) {
+                throw new Error(`Failed to get upload URLs: ${res.message}`);
+            }
+            return res.data;
+        });
+    }
+    uploadFileCore(url, filePath) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const fileSize = yield fs.stat(filePath).then(stat => stat.size);
+            const stream = fs.createReadStream(filePath);
+            let uploadedBytes = 0;
+            let lastReportedProgress = 0;
+            const progressInterval = 10;
+            stream.on('data', (chunk) => {
+                uploadedBytes += chunk.length;
+                const progress = Math.floor((uploadedBytes / fileSize) * 100);
+                if (progress - lastReportedProgress >= progressInterval || progress === 100) {
+                    core.info(`Upload progress: ${progress}% (${uploadedBytes}/${fileSize} bytes)`);
+                    lastReportedProgress = progress;
+                }
+            });
+            const header = {
+                'Content-Type': 'application/octet-stream',
+                'Content-Length': fileSize.toString(),
+            };
+            // @ts-ignore
+            const res = yield this.client.put(url, stream, header);
+            if (res.message.statusCode !== 200) {
+                const error = yield res.readBody();
+                core.error(`Failed to upload file: ${error}`);
+                throw new Error(`Upload failed with status code ${res.message.statusCode}: ${error}`);
+            }
+        });
     }
 }
 exports.CdnClient = CdnClient;
@@ -198,6 +234,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const core = __importStar(__nccwpck_require__(9999));
 const CdnClient_1 = __nccwpck_require__(4486);
+const fs = __importStar(__nccwpck_require__(1977));
 function run() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
@@ -206,27 +243,29 @@ function run() {
                 core.setFailed('Token is required. Please set the token input or SNAP_HUTAO_CDN_TOKEN environment variable.');
                 return;
             }
-            let file_path = core.getInput("file_path", { required: true });
-            let key = core.getInput("key", { required: true });
+            let file_path = core.getInput("file_path", { required: true }).replace(/\/$/, '');
+            let key = core.getInput("key") || file_path.split('/').pop() || '';
             let post_action = core.getInput("post_action") || 'none';
             core.info("Starting Snap Hutao CDN upload with the following parameters:");
             core.info(`File Path: ${file_path}`);
             core.info(`Key: ${key}`);
             core.info(`Post Action: ${post_action}`);
             const cdnClient = new CdnClient_1.CdnClient(token);
-            const uploadUrls = yield cdnClient.getUploadUrls(key);
-            if (uploadUrls.length === 0) {
-                core.setFailed('No upload URLs received from Snap Hutao CDN.');
+            const stats = yield fs.stat(file_path);
+            if (stats.isDirectory()) {
+                core.info(`The provided file path is a directory: ${file_path}`);
+                key = file_path.split('/').pop() || '';
+                core.warning(`Custom key is ignored, current key is set to the last part of the directory path: ${key}`);
+                yield cdnClient.uploadDir(file_path, key);
+            }
+            else if (stats.isFile()) {
+                core.info(`The provided file path is a file: ${file_path}`);
+                yield cdnClient.uploadFile(file_path, key);
+            }
+            else {
+                core.setFailed(`The provided file path is neither a file nor a directory: ${file_path}`);
                 return;
             }
-            core.info(`Received ${uploadUrls.length} upload URLs from Snap Hutao CDN.`);
-            for (let i = 0; i < uploadUrls.length; i++) {
-                const url = uploadUrls[i];
-                core.info(`Uploading file to URL ${i + 1}/${uploadUrls.length}`);
-                yield cdnClient.uploadFile(url, file_path);
-                core.info(`Uploaded file to URL ${i + 1}/${uploadUrls.length}`);
-            }
-            core.info(`File ${file_path} uploaded successfully to Snap Hutao CDN with key ${key}.`);
             if (post_action === 'preheat') {
                 core.info(`Preheating CDN for key ${key}...`);
                 yield cdnClient.preheat(key);
