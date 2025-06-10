@@ -53,6 +53,7 @@ export class CdnClient {
 
         const header = {
             'Content-Type': 'application/octet-stream',
+            'Content-Length': fileSize.toString(),
         }
         // @ts-ignore
         const res = await this.client.put(url, stream, header);
