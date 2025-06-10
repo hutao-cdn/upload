@@ -14,7 +14,7 @@ export class CdnClient {
         });
     }
 
-    async getUploadUrls(key: String): Promise<string[]> {
+    async getUploadUrls(key: string): Promise<string[]> {
         core.info("Fetching upload URLs from Snap Hutao CDN...");
 
         const body = {
@@ -32,22 +32,20 @@ export class CdnClient {
         return res.data;
     }
 
-    async uploadFile(url: String, filePath: String): Promise<void> {
-        core.info(`Uploading file ${filePath} with key ${key}`);
+    async uploadFile(url: string, filePath: string): Promise<void> {
         const buf = await fs.readFile(filePath);
         const stream = Readable.from(buf);
 
+        // @ts-ignore
         const res = await this.client.put(url, stream);
         if (res.message.statusCode !== 200) {
             const error = await res.readBody();
             core.error(`Failed to upload file: ${error}`);
             throw new Error(`Upload failed with status code ${res.message.statusCode}: ${error}`);
         }
-
-        core.info(`File ${filePath} uploaded successfully.`);
     }
 
-    async preheat(key: String): Promise<void> {
+    async preheat(key: string): Promise<void> {
         core.info(`Preheating CDN for key ${key}`);
         const body = {
             token: this.token,
@@ -64,7 +62,7 @@ export class CdnClient {
         core.info(`CDN preheat triggered successfully for key ${key}.`);
     }
 
-    async refresh(key: String): Promise<void> {
+    async refresh(key: string): Promise<void> {
         core.info(`Refreshing CDN for key ${key}`);
         const body = {
             token: this.token,

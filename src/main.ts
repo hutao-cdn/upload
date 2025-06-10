@@ -31,6 +31,7 @@ async function run() {
             const url = uploadUrls[i];
             core.info(`Uploading file to URL ${i + 1}/${uploadUrls.length}`);
             await cdnClient.uploadFile(url, file_path);
+            core.info(`Uploaded file to URL ${i + 1}/${uploadUrls.length}`);
         }
 
         core.info(`File ${file_path} uploaded successfully to Snap Hutao CDN with key ${key}.`);
