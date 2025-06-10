@@ -53,7 +53,6 @@ exports.CdnClient = void 0;
 const http = __importStar(__nccwpck_require__(787));
 const core = __importStar(__nccwpck_require__(9999));
 const fs = __importStar(__nccwpck_require__(1977));
-const stream_1 = __nccwpck_require__(2203);
 class CdnClient {
     constructor(token) {
         this.token = token;
@@ -82,8 +81,19 @@ class CdnClient {
     }
     uploadFile(url, filePath) {
         return __awaiter(this, void 0, void 0, function* () {
-            const buf = yield fs.readFile(filePath);
-            const stream = stream_1.Readable.from(buf);
+            const fileSize = yield fs.stat(filePath).then(stat => stat.size);
+            const stream = fs.createReadStream(filePath);
+            let uploadedBytes = 0;
+            let lastReportedProgress = 0;
+            const progressInterval = 10;
+            stream.on('data', (chunk) => {
+                uploadedBytes += chunk.length;
+                const progress = Math.floor((uploadedBytes / fileSize) * 100);
+                if (progress - lastReportedProgress >= progressInterval || progress === 100) {
+                    core.info(`Upload progress: ${progress}% (${uploadedBytes}/${fileSize} bytes)`);
+                    lastReportedProgress = progress;
+                }
+            });
             const header = {
                 'Content-Type': 'application/octet-stream',
             };

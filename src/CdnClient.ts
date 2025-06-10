@@ -1,7 +1,6 @@
 import * as http from '@actions/http-client';
 import * as core from '@actions/core';
 import * as fs from 'fs-extra';
-import {Readable} from 'stream';
 
 export class CdnClient {
     private readonly token: String
@@ -36,8 +35,21 @@ export class CdnClient {
     }
 
     async uploadFile(url: string, filePath: string): Promise<void> {
-        const buf = await fs.readFile(filePath);
-        const stream = Readable.from(buf);
+        const fileSize = await fs.stat(filePath).then(stat => stat.size);
+        const stream = fs.createReadStream(filePath);
+
+        let uploadedBytes = 0;
+        let lastReportedProgress = 0;
+        const progressInterval = 10;
+
+        stream.on('data', (chunk) => {
+            uploadedBytes += chunk.length;
+            const progress = Math.floor((uploadedBytes / fileSize) * 100);
+            if (progress - lastReportedProgress >= progressInterval || progress === 100) {
+                core.info(`Upload progress: ${progress}% (${uploadedBytes}/${fileSize} bytes)`);
+                lastReportedProgress = progress;
+            }
+        })
 
         const header = {
             'Content-Type': 'application/octet-stream',
