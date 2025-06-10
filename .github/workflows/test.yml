@@ -1,0 +1,16 @@
+name: Test
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "test" > test.txt
+      - uses: hutao-cdn/upload@main
+        with:
+          file_path: test.txt
+          key: test.txt
+        env:
+          SNAP_HUTAO_CDN_TOKEN: ${{ secrets.SNAP_HUTAO_CDN_TOKEN }}
