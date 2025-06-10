@@ -1,0 +1,24 @@
+name: 'Snap Hutao CDN uploader'
+description: 'An action to upload files to Snap Hutao CDN.'
+author: 'hutao-cdn'
+
+inputs:
+  token:
+    description: 'The token for authentication. Or use the `SNAP_HUTAO_CDN_TOKEN` environment variable.'
+    required: false
+  file_path:
+    description: 'The path to the file to upload.'
+    required: true
+    default: ''
+  key:
+    description: 'Storage key for the file.'
+    required: true
+    default: ''
+  post_action:
+    description: 'The post action to perform after uploading the file. Options are "none", "refresh", or "preheat". Defaults to "none".'
+    required: false
+    default: 'none'
+
+runs:
+  using: node20
+  main: dist/index.js

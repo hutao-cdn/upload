@@ -1,0 +1,32 @@
+{
+  "name": "hutao-cdn-uploader",
+  "version": "1.0.0",
+  "description": "A simple uploader for Snap Hutao CDN",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hutao-cdn/upload.git"
+  },
+  "keywords": [
+    "hutao",
+    "cdn",
+    "uploader",
+    "file upload"
+  ],
+  "author": "hutao-cdn",
+  "license": "MIT",
+  "scripts": {
+    "build": "pnpm install && tsc && ncc build .\\lib\\main.js --license licenses.txt --license licenses.txt"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/glob": "^0.4.0",
+    "@actions/http-client": "^2.2.3",
+    "fs-extra": "^11.3.0"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@vercel/ncc": "^0.38.3",
+    "typescript": "^5.8.3"
+  },
+  "packageManager": "pnpm@10.12.1"
+}
