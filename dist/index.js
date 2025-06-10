@@ -64,11 +64,14 @@ class CdnClient {
     getUploadUrls(key) {
         return __awaiter(this, void 0, void 0, function* () {
             core.info("Fetching upload URLs from Snap Hutao CDN...");
+            const header = {
+                'Content-Type': 'application/json'
+            };
             const body = {
                 token: this.token,
                 key: key,
             };
-            const res = yield this.client.post(this.getUrl("/v2/getUploadUrls"), JSON.stringify(body))
+            const res = yield this.client.post(this.getUrl("/v2/getUploadUrls"), JSON.stringify(body), header)
                 .then(res => res.readBody())
                 .then(res => JSON.parse(res));
             if (res.retcode !== 0) {
@@ -81,8 +84,11 @@ class CdnClient {
         return __awaiter(this, void 0, void 0, function* () {
             const buf = yield fs.readFile(filePath);
             const stream = stream_1.Readable.from(buf);
+            const header = {
+                'Content-Type': 'application/octet-stream',
+            };
             // @ts-ignore
-            const res = yield this.client.put(url, stream);
+            const res = yield this.client.put(url, stream, header);
             if (res.message.statusCode !== 200) {
                 const error = yield res.readBody();
                 core.error(`Failed to upload file: ${error}`);

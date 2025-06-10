@@ -17,11 +17,14 @@ export class CdnClient {
     async getUploadUrls(key: string): Promise<string[]> {
         core.info("Fetching upload URLs from Snap Hutao CDN...");
 
+        const header = {
+            'Content-Type': 'application/json'
+        }
         const body = {
             token: this.token,
             key: key,
         }
-        const res = await this.client.post(this.getUrl("/v2/getUploadUrls"), JSON.stringify(body))
+        const res = await this.client.post(this.getUrl("/v2/getUploadUrls"), JSON.stringify(body), header)
             .then(res => res.readBody())
             .then(res => JSON.parse(res));
 
@@ -36,8 +39,11 @@ export class CdnClient {
         const buf = await fs.readFile(filePath);
         const stream = Readable.from(buf);
 
+        const header = {
+            'Content-Type': 'application/octet-stream',
+        }
         // @ts-ignore
-        const res = await this.client.put(url, stream);
+        const res = await this.client.put(url, stream, header);
         if (res.message.statusCode !== 200) {
             const error = await res.readBody();
             core.error(`Failed to upload file: ${error}`);
