@@ -50,11 +50,14 @@ export class CdnClient {
 
     async preheat(key: string): Promise<void> {
         core.info(`Preheating CDN for key ${key}`);
+        const header = {
+            'Content-Type': 'application/json'
+        }
         const body = {
             token: this.token,
             key: key,
         }
-        const res = await this.client.post(this.getUrl("/v2/preheat"), JSON.stringify(body))
+        const res = await this.client.post(this.getUrl("/v2/preheat"), JSON.stringify(body), header)
             .then(res => res.readBody())
             .then(res => JSON.parse(res));
 
@@ -67,11 +70,14 @@ export class CdnClient {
 
     async refresh(key: string): Promise<void> {
         core.info(`Refreshing CDN for key ${key}`);
+        const header = {
+            'Content-Type': 'application/json'
+        }
         const body = {
             token: this.token,
             key: key,
         }
-        const res = await this.client.post(this.getUrl("/v2/refresh"), JSON.stringify(body))
+        const res = await this.client.post(this.getUrl("/v2/refresh"), JSON.stringify(body), header)
             .then(res => res.readBody())
             .then(res => JSON.parse(res));
 

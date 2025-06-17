@@ -99,11 +99,14 @@ class CdnClient {
     preheat(key) {
         return __awaiter(this, void 0, void 0, function* () {
             core.info(`Preheating CDN for key ${key}`);
+            const header = {
+                'Content-Type': 'application/json'
+            };
             const body = {
                 token: this.token,
                 key: key,
             };
-            const res = yield this.client.post(this.getUrl("/v2/preheat"), JSON.stringify(body))
+            const res = yield this.client.post(this.getUrl("/v2/preheat"), JSON.stringify(body), header)
                 .then(res => res.readBody())
                 .then(res => JSON.parse(res));
             if (res.retcode !== 0) {
@@ -115,11 +118,14 @@ class CdnClient {
     refresh(key) {
         return __awaiter(this, void 0, void 0, function* () {
             core.info(`Refreshing CDN for key ${key}`);
+            const header = {
+                'Content-Type': 'application/json'
+            };
             const body = {
                 token: this.token,
                 key: key,
             };
-            const res = yield this.client.post(this.getUrl("/v2/refresh"), JSON.stringify(body))
+            const res = yield this.client.post(this.getUrl("/v2/refresh"), JSON.stringify(body), header)
                 .then(res => res.readBody())
                 .then(res => JSON.parse(res));
             if (res.retcode !== 0) {
